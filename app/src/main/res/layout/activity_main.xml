@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.zouyingjun.inzone.tp_client.MainActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:id="@+id/linearLayou1">
+        <fragment
+            class="com.zouyingjun.inzone.tp_client.DeviceListFragment"
+            android:layout_width="match_parent"
+            android:id="@+id/frag_list"
+            android:layout_height="200dp">
+            <!--设备列表-->
+        </fragment>
+        <fragment
+            class="com.zouyingjun.inzone.tp_client.DeviceDetailFragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id="@+id/frag_detail">
+            <!--设备信息-->
+        </fragment>
+    </LinearLayout>
+</LinearLayout>
