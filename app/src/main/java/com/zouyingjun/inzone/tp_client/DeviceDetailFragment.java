@@ -4,6 +4,8 @@ import android.app.Fragment;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.media.projection.MediaProjection;
+import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
@@ -18,7 +20,9 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -27,6 +31,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+
+import static android.content.Context.MEDIA_PROJECTION_SERVICE;
 
 /**
  * Created by zouyingjun on 2017/6/27.
@@ -39,11 +45,21 @@ public class DeviceDetailFragment extends Fragment implements
     private WifiP2pDevice device;
     ProgressDialog progressDialog;
     protected static final int CHOOSE_FILE_RESULT_CODE = 20;//相册请求码
+    protected static final int CHOOSE_RECODER_RESULT_CODE = 30;//录制视频请求码
+    private Button mButton;//点击录制视频
+    private MediaProjectionManager mMediaProjectionManager;
+    private ScreenRecorder mRecorder;
+
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
         mContentView = inflater.inflate(R.layout.device_detail,null);
+
+        //获取mMediaProjectionManager
+        mMediaProjectionManager = (MediaProjectionManager) getActivity()
+                .getSystemService(MEDIA_PROJECTION_SERVICE);
+
                 //开始连接获取连接的信息（如端口）
         mContentView.findViewById(R.id.btn_connect).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -80,24 +96,78 @@ public class DeviceDetailFragment extends Fragment implements
                 startActivityForResult(intent, CHOOSE_FILE_RESULT_CODE);
             }
         });
+                //点击开始录制视屏到本地
+        mButton = mContentView.findViewById(R.id.btn_start_recoder);
+        mButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //开始录制视屏
+                if (mRecorder != null) {
+                    mRecorder.quit();
+                    mRecorder = null;
+                    mButton.setText("Restart recorder");
+                } else {
+                    //开启录制屏幕
+                    Intent captureIntent = mMediaProjectionManager.createScreenCaptureIntent();
+                    startActivityForResult(captureIntent, CHOOSE_RECODER_RESULT_CODE);
+                }
+            }
+        });
+
         return mContentView;
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {//承接相册点击事件
-        //打开相册后，选取照片，返回文件地址
-        Uri uri = data.getData();
-        TextView statusText = (TextView) mContentView.findViewById(R.id.status_text);
-        statusText.setText("Sending: " + uri);
-        Log.e("zouyingjun", "照片地址："+uri);
-        //把文件写入流中
-        Intent serviceIntent = new Intent(getActivity(), FileTransferService.class);
-        serviceIntent.setAction(FileTransferService.ACTION_SEND_FILE);
-        serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_PATH, uri.toString());
-        serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_ADDRESS,
-                info.groupOwnerAddress.getHostAddress());
-        serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_PORT, 8988);
-        getActivity().startService(serviceIntent);
+
+        if(CHOOSE_FILE_RESULT_CODE == requestCode) {//加载相册
+
+            //打开相册后，选取照片，返回文件地址
+            Uri uri = data.getData();
+            TextView statusText = (TextView) mContentView.findViewById(R.id.status_text);
+            statusText.setText("Sending: " + uri);
+            Log.e("zouyingjun", "照片地址：" + uri);
+            //把文件写入流中
+            Intent serviceIntent = new Intent(getActivity(), FileTransferService.class);
+            serviceIntent.setAction(FileTransferService.ACTION_SEND_FILE);
+            serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_PATH, uri.toString());
+            serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_ADDRESS,
+                    info.groupOwnerAddress.getHostAddress());
+            serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_PORT, 8988);
+            getActivity().startService(serviceIntent);
+
+        }else if(CHOOSE_RECODER_RESULT_CODE == requestCode){//录屏
+
+            //传递data构建mediaprojection交给ScreenRecorder录制视屏
+            MediaProjection mediaProjection = mMediaProjectionManager.getMediaProjection(resultCode, data);
+            if (mediaProjection == null) {
+                Log.e("@@", "media projection is null");
+                return;
+            }
+
+//            Display defaultDisplay = getActivity().getWindowManager().getDefaultDisplay();
+//            int width1 = defaultDisplay.getWidth();
+//            int height1 = defaultDisplay.getHeight();
+//
+//
+//
+//            Log.e("zouyingjun", "width1 :"+width1+"    height1:"+height1);
+
+            // video size
+            final int width = 1280;
+            final int height = 720;
+            File file = new File(Environment.getExternalStorageDirectory(),
+                    "record-" + width + "x" + height + "-" + System.currentTimeMillis() + ".mp4");
+            final int bitrate = 6000000;
+            mRecorder = new ScreenRecorder(width, height, bitrate, 1, mediaProjection, file.getAbsolutePath());//直接传递路径生成文件
+//            mRecorder = new ScreenRecorder(mediaProjection);//默认路径：sdcard/test.mp4
+
+            mRecorder.start();
+            mButton.setText("Stop Recorder");
+            Toast.makeText(getActivity(), "Screen recorder is running...", Toast.LENGTH_SHORT).show();
+            getActivity().moveTaskToBack(true);//类似于home按键（但不是finish 只是在后台运行），false时候必须处于栈顶才能实现
+
+        }
     }
 
     //重置界面
@@ -114,6 +184,8 @@ public class DeviceDetailFragment extends Fragment implements
         view.setText(R.string.empty);
         //隐藏相册功能
         mContentView.findViewById(R.id.btn_start_client).setVisibility(View.GONE);
+        //隐藏视频录制功能
+        mContentView.findViewById(R.id.btn_start_recoder).setVisibility(View.GONE);
         this.getView().setVisibility(View.GONE);
     }
 
@@ -170,6 +242,8 @@ public class DeviceDetailFragment extends Fragment implements
             ((TextView) mContentView.findViewById(R.id.status_text)).setText(getResources()
                     .getString(R.string.client_text));
         }
+        //显示录制视频按钮
+        mContentView.findViewById(R.id.btn_start_recoder).setVisibility(View.VISIBLE);
 
         // hide the connect button
         mContentView.findViewById(R.id.btn_connect).setVisibility(View.GONE);

@@ -48,6 +48,14 @@
                 android:singleLine="true"
                 android:ellipsize="marquee" />
         </LinearLayout>
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:layout_gravity="center"
+            android:focusable="true"
+            android:id="@+id/search"
+            android:text="搜索"/>
     </LinearLayout>
 
     <TextView

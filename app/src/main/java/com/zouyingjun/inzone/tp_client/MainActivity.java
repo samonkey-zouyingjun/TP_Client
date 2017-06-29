@@ -1,5 +1,6 @@
 package com.zouyingjun.inzone.tp_client;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -8,7 +9,6 @@ import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -19,7 +19,7 @@ import android.widget.Toast;
 /**
  * WiFiDirectActivity
  */
-public class MainActivity extends AppCompatActivity implements DeviceActionListener{
+public class MainActivity extends Activity implements DeviceActionListener{
     private boolean isWifiP2pEnabled = false;//收到广播后记录p2p可用状态
     private WiFiDirectBroadcastReceiver receiver;
     private WifiP2pManager manager;
@@ -41,7 +41,6 @@ public class MainActivity extends AppCompatActivity implements DeviceActionListe
         //初始化
         manager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         channel = manager.initialize(this, getMainLooper(), null);
-
 
     }
 
@@ -75,7 +74,6 @@ public class MainActivity extends AppCompatActivity implements DeviceActionListe
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-
         switch (item.getItemId()){
             case R.id.atn_direct_enable://设置wifi
                 if(manager !=null && channel !=null){
@@ -87,38 +85,46 @@ public class MainActivity extends AppCompatActivity implements DeviceActionListe
                 }
                 return true;
             case R.id.atn_direct_discover://开始搜索
-                //开启服务前提是P2p可用
-                if(!isWifiP2pEnabled){
-                    Toast.makeText(MainActivity.this, "wifiP2p不可用",
-                            Toast.LENGTH_SHORT).show();
-                    return true;
-                }
+
+                searchPears();
 
 
-                DeviceListFragment fragment = (DeviceListFragment) getFragmentManager().
-                        findFragmentById(R.id.frag_list);
-                //启用进度条
-                fragment.onInitiateDiscovery();
-                //开始搜索设备
-                manager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
-                    @Override
-                    public void onSuccess() {
-//                        Toast.makeText(MainActivity.this, "搜索完毕", Toast.LENGTH_SHORT).show();
-                        // 剩下逻辑在广播中处理
-                    }
-
-                    @Override
-                    public void onFailure(int i) {
-                        Toast.makeText(MainActivity.this, "搜索失败 错误码："+i, Toast.LENGTH_SHORT).show();
-                    }
-                });
-                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
 
 
 
+    }
+
+    public boolean searchPears() {
+        //开启服务前提是P2p可用
+        if(!isWifiP2pEnabled){
+            Toast.makeText(MainActivity.this, "wifiP2p不可用",
+                    Toast.LENGTH_SHORT).show();
+            return true;
+        }
+
+
+        DeviceListFragment fragment = (DeviceListFragment) getFragmentManager().
+                findFragmentById(R.id.frag_list);
+        //启用进度条
+        fragment.onInitiateDiscovery();
+        //开始搜索设备
+        manager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+//                        Toast.makeText(MainActivity.this, "搜索完毕", Toast.LENGTH_SHORT).show();
+                // 剩下逻辑在广播中处理
+            }
+
+            @Override
+            public void onFailure(int i) {
+                Toast.makeText(MainActivity.this, "搜索失败 错误码："+i, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        return true;
     }
 
     @Override
