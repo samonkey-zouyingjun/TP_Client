@@ -85,16 +85,10 @@ public class MainActivity extends Activity implements DeviceActionListener{
                 }
                 return true;
             case R.id.atn_direct_discover://开始搜索
-
                 searchPears();
-
-
             default:
                 return super.onOptionsItemSelected(item);
         }
-
-
-
     }
 
     public boolean searchPears() {
@@ -193,4 +187,10 @@ public class MainActivity extends Activity implements DeviceActionListener{
         });
     }
     //--------------DeviceActionListener end----------------
+
+
+    @Override
+    public void onBackPressed() {
+        moveTaskToBack(true);
+    }
 }

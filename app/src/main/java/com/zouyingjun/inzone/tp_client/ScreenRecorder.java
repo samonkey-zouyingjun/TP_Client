@@ -31,7 +31,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * @author Yrom
+ * 录制视屏的线程 获取到帧数据流编码通过socket发送
  */
 public class ScreenRecorder extends Thread {
     private static final String TAG = "ScreenRecorder";
@@ -84,45 +84,58 @@ public class ScreenRecorder extends Thread {
     public void run() {
         try {
             try {
-                prepareEncoder();
+                prepareEncoder();//编码前格式设置,并生成渲染的容器
+                //生成混合器，以便进行视频音频混合并输出MP4格式文件保存
                 mMuxer = new MediaMuxer(mDstPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
 
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
+            //根据指定参数和容器（mSurface）生成屏幕映射(mVirtualDisplay)
             mVirtualDisplay = mMediaProjection.createVirtualDisplay(TAG + "-display",
                     mWidth, mHeight, mDpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                     mSurface, null, null);
             Log.d(TAG, "created virtual display: " + mVirtualDisplay);
+            //根据屏幕映射取得实时视频流，循环遍历byteBuffer，并刷出缓冲区
             recordVirtualDisplay();
 
         } finally {
-            release();
+            release();//释放资源
         }
     }
 
-    private void recordVirtualDisplay() {
+    private void recordVirtualDisplay() {//http://blog.csdn.net/jinzhuojun/article/details/32163149
+        //设置循环去遍历输出缓冲区域
         while (!mQuit.get()) {
+            //返回一个inputbuffer的索引用来填充数据，返回-1表示暂无可用buffer
             int index = mEncoder.dequeueOutputBuffer(mBufferInfo, TIMEOUT_US);
             Log.i(TAG, "dequeue output buffer index=" + index);
-            if (index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-                resetOutputFormat();
 
-            } else if (index == MediaCodec.INFO_TRY_AGAIN_LATER) {
-                Log.d(TAG, "retrieving buffers time out!");
-                try {
-                    // wait 10ms
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
-                }
-            } else if (index >= 0) {
+            if(index <0){
+                return;//无可用 inputbuffer
+            }
 
-                if (!mMuxerStarted) {
-                    throw new IllegalStateException("MediaMuxer dose not call addTrack(format) ");
-                }
-                encodeToVideoTrack(index);
+            switch (index){
+                case MediaCodec.INFO_OUTPUT_FORMAT_CHANGED://在接收之前返回一次，信息后调用，可以查看当前媒体格式信息
+                    resetOutputFormat();
+                    break;
+                case MediaCodec.INFO_TRY_AGAIN_LATER://接收超时
+                    Log.d(TAG, "retrieving buffers time out!");
+                    try {
+                        // wait 10ms
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                    }
+                    break;
+                default: //接收renderer 获取的inputBuffer 交给MediaMuxer混合生成mp4
+                    if (!mMuxerStarted) {
+                        throw new IllegalStateException("MediaMuxer dose not call addTrack(format) ");
+                    }
+                    //根据index在OutputBuffer中获取数据
+                    encodeToVideoTrack(index);
 
-                mEncoder.releaseOutputBuffer(index, false);
+                    mEncoder.releaseOutputBuffer(index, false);
+                    break;
             }
         }
     }
@@ -148,7 +161,7 @@ public class ScreenRecorder extends Thread {
         if (encodedData != null) {
             encodedData.position(mBufferInfo.offset);
             encodedData.limit(mBufferInfo.offset + mBufferInfo.size);
-            mMuxer.writeSampleData(mVideoTrackIndex, encodedData, mBufferInfo);
+            mMuxer.writeSampleData(mVideoTrackIndex, encodedData, mBufferInfo);//完成视频
             Log.i(TAG, "sent " + mBufferInfo.size + " bytes to muxer...");
         }
     }
@@ -177,25 +190,33 @@ public class ScreenRecorder extends Thread {
         format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, IFRAME_INTERVAL);
 
         Log.d(TAG, "created video format: " + format);
+        //初始化H246编码器
         mEncoder = MediaCodec.createEncoderByType(MIME_TYPE);
+        //设置编码信息
         mEncoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+        //生成等待VirtualDisplay渲染的容器
         mSurface = mEncoder.createInputSurface();
         Log.d(TAG, "created input surface: " + mSurface);
+        //等候编码
         mEncoder.start();
     }
 
     private void release() {
+        //编码器
         if (mEncoder != null) {
             mEncoder.stop();
             mEncoder.release();
             mEncoder = null;
         }
+        //屏幕映射
         if (mVirtualDisplay != null) {
             mVirtualDisplay.release();
         }
+        //媒体管理器
         if (mMediaProjection != null) {
             mMediaProjection.stop();
         }
+        //混合器
         if (mMuxer != null) {
             mMuxer.stop();
             mMuxer.release();

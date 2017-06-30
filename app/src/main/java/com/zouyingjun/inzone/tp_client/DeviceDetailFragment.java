@@ -165,7 +165,7 @@ public class DeviceDetailFragment extends Fragment implements
             mRecorder.start();
             mButton.setText("Stop Recorder");
             Toast.makeText(getActivity(), "Screen recorder is running...", Toast.LENGTH_SHORT).show();
-            getActivity().moveTaskToBack(true);//类似于home按键（但不是finish 只是在后台运行），false时候必须处于栈顶才能实现
+//            getActivity().moveTaskToBack(true);//类似于home按键（但不是finish 只是在后台运行），false时候必须处于栈顶才能实现
 
         }
     }
