@@ -111,10 +111,6 @@ public class ScreenRecorder extends Thread {
             int index = mEncoder.dequeueOutputBuffer(mBufferInfo, TIMEOUT_US);
             Log.i(TAG, "dequeue output buffer index=" + index);
 
-            if(index <0){
-                return;//无可用 inputbuffer
-            }
-
             switch (index){
                 case MediaCodec.INFO_OUTPUT_FORMAT_CHANGED://在接收之前返回一次，信息后调用，可以查看当前媒体格式信息
                     resetOutputFormat();
@@ -171,7 +167,7 @@ public class ScreenRecorder extends Thread {
         if (mMuxerStarted) {
             throw new IllegalStateException("output format already changed!");
         }
-        MediaFormat newFormat = mEncoder.getOutputFormat();
+        MediaFormat newFormat = mEncoder.getOutputFormat();//获取的视频流
 
         Log.i(TAG, "output format changed.\n new format: " + newFormat.toString());
         mVideoTrackIndex = mMuxer.addTrack(newFormat);
