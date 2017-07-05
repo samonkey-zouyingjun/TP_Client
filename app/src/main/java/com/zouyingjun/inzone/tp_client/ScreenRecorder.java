@@ -21,8 +21,8 @@ import android.hardware.display.VirtualDisplay;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
-import android.media.MediaMuxer;
 import android.media.projection.MediaProjection;
+import android.os.Environment;
 import android.util.Log;
 import android.view.Surface;
 
@@ -50,8 +50,6 @@ public class ScreenRecorder extends Thread {
 
     private MediaCodec mEncoder;
     private Surface mSurface;
-    private MediaMuxer mMuxer;
-    private boolean mMuxerStarted = false;
     private int mVideoTrackIndex = -1;
     private AtomicBoolean mQuit = new AtomicBoolean(false);
     private MediaCodec.BufferInfo mBufferInfo = new MediaCodec.BufferInfo();
@@ -85,9 +83,6 @@ public class ScreenRecorder extends Thread {
         try {
             try {
                 prepareEncoder();//编码前格式设置,并生成渲染的容器
-                //生成混合器，以便进行视频音频混合并输出MP4格式文件保存
-                mMuxer = new MediaMuxer(mDstPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
-
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -96,48 +91,55 @@ public class ScreenRecorder extends Thread {
                     mWidth, mHeight, mDpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC,
                     mSurface, null, null);
             Log.d(TAG, "created virtual display: " + mVirtualDisplay);
-            //根据屏幕映射取得实时视频流，循环遍历byteBuffer，并刷出缓冲区
+            //同步处理数据  不用理会编解码器是否已经准备好接收数据（有风险）
             recordVirtualDisplay();
+
+
 
         } finally {
             release();//释放资源
         }
     }
 
+
+    String path = Environment.getExternalStorageDirectory() + "/zyj.h264";
+
     private void recordVirtualDisplay() {//http://blog.csdn.net/jinzhuojun/article/details/32163149
         //设置循环去遍历输出缓冲区域
+        ByteBuffer[] inputBuffers = mEncoder.getInputBuffers();
+        ByteBuffer[] outputBuffers = mEncoder.getOutputBuffers();
+
         while (!mQuit.get()) {
             //返回一个inputbuffer的索引用来填充数据，返回-1表示暂无可用buffer
             int index = mEncoder.dequeueOutputBuffer(mBufferInfo, TIMEOUT_US);
-            Log.i(TAG, "dequeue output buffer index=" + index);
 
-            switch (index){
-                case MediaCodec.INFO_OUTPUT_FORMAT_CHANGED://在接收之前返回一次，信息后调用，可以查看当前媒体格式信息
-                    resetOutputFormat();
-                    break;
-                case MediaCodec.INFO_TRY_AGAIN_LATER://接收超时
-                    Log.d(TAG, "retrieving buffers time out!");
-                    try {
-                        // wait 10ms
-                        Thread.sleep(10);
-                    } catch (InterruptedException e) {
-                    }
-                    break;
-                default: //接收renderer 获取的inputBuffer 交给MediaMuxer混合生成mp4
-                    if (!mMuxerStarted) {
-                        throw new IllegalStateException("MediaMuxer dose not call addTrack(format) ");
-                    }
-                    //根据index在OutputBuffer中获取数据
-                    encodeToVideoTrack(index);
+            if(index >= 0){
+                ByteBuffer outputBuffer = outputBuffers[index];
+                byte[] outData = new byte[mBufferInfo.size];
+                outputBuffer.get(outData);
 
-                    mEncoder.releaseOutputBuffer(index, false);
-                    break;
+                //记录pps和sps
+                byte[] mPpsSps = new byte[0];
+                if (outData[0] == 0 && outData[1] == 0 && outData[2] == 0 && outData[3] == 1 && outData[4] == 103) {
+                    mPpsSps = outData;
+                } else if (outData[0] == 0 && outData[1] == 0 && outData[2] == 0 && outData[3] == 1 && outData[4] == 101) {
+                    //在关键帧前面加上pps和sps数据
+                    byte[] iframeData = new byte[mPpsSps.length + outData.length];
+                    System.arraycopy(mPpsSps, 0, iframeData, 0, mPpsSps.length);
+                    System.arraycopy(outData, 0, iframeData, mPpsSps.length, outData.length);
+                    outData = iframeData;
+                }
+                Util.save(outData, 0, outData.length, path, true);
+                mEncoder.releaseOutputBuffer(index, false);
+
             }
         }
     }
 
+
     private void encodeToVideoTrack(int index) {
-        ByteBuffer encodedData = mEncoder.getOutputBuffer(index);
+
+        ByteBuffer encodedData = mEncoder.getOutputBuffer(index);//就是实时视频数据
 
         if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
             // The codec config data was pulled out and fed to the muxer when we got
@@ -157,22 +159,17 @@ public class ScreenRecorder extends Thread {
         if (encodedData != null) {
             encodedData.position(mBufferInfo.offset);
             encodedData.limit(mBufferInfo.offset + mBufferInfo.size);
-            mMuxer.writeSampleData(mVideoTrackIndex, encodedData, mBufferInfo);//完成视频
             Log.i(TAG, "sent " + mBufferInfo.size + " bytes to muxer...");
         }
     }
 
     private void resetOutputFormat() {
         // should happen before receiving buffers, and should only happen once
-        if (mMuxerStarted) {
-            throw new IllegalStateException("output format already changed!");
-        }
+
         MediaFormat newFormat = mEncoder.getOutputFormat();//获取的视频流
 
         Log.i(TAG, "output format changed.\n new format: " + newFormat.toString());
-        mVideoTrackIndex = mMuxer.addTrack(newFormat);
-        mMuxer.start();
-        mMuxerStarted = true;
+
         Log.i(TAG, "started media muxer, videoIndex=" + mVideoTrackIndex);
     }
 
@@ -211,12 +208,6 @@ public class ScreenRecorder extends Thread {
         //媒体管理器
         if (mMediaProjection != null) {
             mMediaProjection.stop();
-        }
-        //混合器
-        if (mMuxer != null) {
-            mMuxer.stop();
-            mMuxer.release();
-            mMuxer = null;
         }
     }
 }
