@@ -46,9 +46,9 @@ public class DeviceDetailFragment extends Fragment implements
     ProgressDialog progressDialog;
     protected static final int CHOOSE_FILE_RESULT_CODE = 20;//相册请求码
     protected static final int CHOOSE_RECODER_RESULT_CODE = 30;//录制视频请求码
-    private Button mButton;//点击录制视频
     private MediaProjectionManager mMediaProjectionManager;
     private ScreenRecorder mRecorder;
+    private Button btnRecode;
 
 
     @Nullable
@@ -87,25 +87,15 @@ public class DeviceDetailFragment extends Fragment implements
                 ((MainActivity)getActivity()).disconnect();
             }
         });
-                //开始选择相册
-        mContentView.findViewById(R.id.btn_start_client).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                intent.setType("image/*");
-                startActivityForResult(intent, CHOOSE_FILE_RESULT_CODE);
-            }
-        });
-                //点击开始录制视屏到本地
-        mButton = mContentView.findViewById(R.id.btn_start_recoder);
-        mButton.setOnClickListener(new View.OnClickListener() {
+        btnRecode = mContentView.findViewById(R.id.btn_start_client);
+        btnRecode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 //开始录制视屏
                 if (mRecorder != null) {
                     mRecorder.quit();
                     mRecorder = null;
-                    mButton.setText("Restart recorder");
+                    btnRecode.setText("Restart recorder");
                 } else {
                     //开启录制屏幕
                     Intent captureIntent = mMediaProjectionManager.createScreenCaptureIntent();
@@ -119,6 +109,10 @@ public class DeviceDetailFragment extends Fragment implements
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {//承接相册点击事件
+
+        App application = (App) getActivity().getApplication();
+        application.EXTRAS_GROUP_OWNER_ADDRESS = info.groupOwnerAddress.getHostAddress();
+        application.EXTRAS_GROUP_OWNER_PORT = 8988;
 
         if(CHOOSE_FILE_RESULT_CODE == requestCode) {//加载相册
 
@@ -145,25 +139,17 @@ public class DeviceDetailFragment extends Fragment implements
                 return;
             }
 
-//            Display defaultDisplay = getActivity().getWindowManager().getDefaultDisplay();
-//            int width1 = defaultDisplay.getWidth();
-//            int height1 = defaultDisplay.getHeight();
-//
-//
-//
-//            Log.e("zouyingjun", "width1 :"+width1+"    height1:"+height1);
-
             // video size
             final int width = 1280;
             final int height = 720;
             File file = new File(Environment.getExternalStorageDirectory(),
                     "record-" + width + "x" + height + "-" + System.currentTimeMillis() + ".mp4");
             final int bitrate = 6000000;
-            mRecorder = new ScreenRecorder(width, height, bitrate, 1, mediaProjection, file.getAbsolutePath());//直接传递路径生成文件
+            mRecorder = new ScreenRecorder(getActivity(),width, height, bitrate, 1, mediaProjection, file.getAbsolutePath());//直接传递路径生成文件
 //            mRecorder = new ScreenRecorder(mediaProjection);//默认路径：sdcard/test.mp4
 
             mRecorder.start();
-            mButton.setText("Stop Recorder");
+            btnRecode.setText("Stop Recorder");
             Toast.makeText(getActivity(), "Screen recorder is running...", Toast.LENGTH_SHORT).show();
 //            getActivity().moveTaskToBack(true);//类似于home按键（但不是finish 只是在后台运行），false时候必须处于栈顶才能实现
 
@@ -182,10 +168,8 @@ public class DeviceDetailFragment extends Fragment implements
         view.setText(R.string.empty);
         view = (TextView) mContentView.findViewById(R.id.status_text);
         view.setText(R.string.empty);
-        //隐藏相册功能
-        mContentView.findViewById(R.id.btn_start_client).setVisibility(View.GONE);
         //隐藏视频录制功能
-        mContentView.findViewById(R.id.btn_start_recoder).setVisibility(View.GONE);
+        mContentView.findViewById(R.id.btn_start_client).setVisibility(View.GONE);
         this.getView().setVisibility(View.GONE);
     }
 
@@ -231,8 +215,10 @@ public class DeviceDetailFragment extends Fragment implements
 
         // the group owner作服务端，接收流，复制文件到文件夹展示
         if (info.groupFormed && info.isGroupOwner) {
-            new FileServerAsyncTask(getActivity(), (TextView) mContentView.findViewById(R.id.status_text))
-                    .execute();
+//            new FileServerAsyncTask(getActivity(), (TextView) mContentView.findViewById(R.id.status_text))
+//                    .execute();
+            recorderData();
+
         //the group client 做客户端，获取文件路径后，将文件写入流，开启任务栈推送流
         } else if (info.groupFormed) {
             // The other device acts as the client. In this case, we enable the
@@ -242,11 +228,35 @@ public class DeviceDetailFragment extends Fragment implements
             ((TextView) mContentView.findViewById(R.id.status_text)).setText(getResources()
                     .getString(R.string.client_text));
         }
-        //显示录制视频按钮
-        mContentView.findViewById(R.id.btn_start_recoder).setVisibility(View.VISIBLE);
 
         // hide the connect button
         mContentView.findViewById(R.id.btn_connect).setVisibility(View.GONE);
+    }
+
+    private void recorderData() {
+        new Thread(){
+            @Override
+            public void run() {
+                try {
+                    //接收流拷贝文件到文件夹 结束后返回文件路径
+                    ServerSocket serverSocket = new ServerSocket(8988);
+                Log.e("zouyingjun", "Server: Socket opened");
+                    Socket client = serverSocket.accept();
+                Log.e("zouyingjun", "Server: connection done");
+                    final File f = new File(Environment.getExternalStorageDirectory() + "/zyj.264");
+
+                    Log.e("zouyingjun", "server: copying files " + f.toString());
+                    InputStream inputstream = client.getInputStream();
+                    copyFile(inputstream, new FileOutputStream(f,true));
+                    serverSocket.close();
+                } catch (IOException e) {
+                    Log.e("zouyingjun", "server error!  " + e.getMessage());
+                }
+            }
+        }.start();
+
+
+
     }
 
     //点击设备后展开设备信息
@@ -276,12 +286,10 @@ public class DeviceDetailFragment extends Fragment implements
             try {
                 //接收流拷贝文件到文件夹 结束后返回文件路径
                 ServerSocket serverSocket = new ServerSocket(8988);
-                Log.e("zouyingjun", "Server: Socket opened");
+//                Log.e("zouyingjun", "Server: Socket opened");
                 Socket client = serverSocket.accept();
-                Log.e("zouyingjun", "Server: connection done");
-                final File f = new File(Environment.getExternalStorageDirectory() + "/"
-                        + context.getPackageName() + "/wifip2pshared-" + System.currentTimeMillis()
-                        + ".jpg");
+//                Log.e("zouyingjun", "Server: connection done");
+                final File f = new File(Environment.getExternalStorageDirectory() + "/zyj.264");
 
                 File dirs = new File(f.getParent());
                 if (!dirs.exists())
@@ -290,7 +298,7 @@ public class DeviceDetailFragment extends Fragment implements
 
                 Log.e("zouyingjun", "server: copying files " + f.toString());
                 InputStream inputstream = client.getInputStream();
-                copyFile(inputstream, new FileOutputStream(f));
+                copyFile(inputstream, new FileOutputStream(f,true));
                 serverSocket.close();
                 return f.getAbsolutePath();
             } catch (IOException e) {
@@ -299,19 +307,6 @@ public class DeviceDetailFragment extends Fragment implements
             }
         }
 
-        @Override
-        protected void onPostExecute(String result) {//取得的文件路径，用相册预览
-            if (result != null) {
-                statusText.setText("File copied - " + result);
-                Intent intent = new Intent();
-                intent.setAction(android.content.Intent.ACTION_VIEW);
-                intent.setDataAndType(Uri.parse("file://" + result), "image/*");
-                context.startActivity(intent);
-            }else{
-                statusText.setText("传输失败,服务器错误,请查看日志");
-            }
-
-        }
         @Override
         protected void onPreExecute() {
             statusText.setText("socket 已经开启，请耐心等待文件传输完毕");

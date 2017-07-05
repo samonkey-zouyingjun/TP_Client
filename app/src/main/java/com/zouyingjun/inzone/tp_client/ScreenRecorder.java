@@ -16,6 +16,7 @@
 
 package com.zouyingjun.inzone.tp_client;
 
+import android.app.Activity;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
 import android.media.MediaCodec;
@@ -54,9 +55,11 @@ public class ScreenRecorder extends Thread {
     private AtomicBoolean mQuit = new AtomicBoolean(false);
     private MediaCodec.BufferInfo mBufferInfo = new MediaCodec.BufferInfo();
     private VirtualDisplay mVirtualDisplay;
+    private Activity activity;
 
-    public ScreenRecorder(int width, int height, int bitrate, int dpi, MediaProjection mp, String dstPath) {
+    public ScreenRecorder(Activity activity,int width, int height, int bitrate, int dpi, MediaProjection mp, String dstPath) {
         super(TAG);
+        this.activity = activity;
         mWidth = width;
         mHeight = height;
         mBitRate = bitrate;
@@ -65,11 +68,6 @@ public class ScreenRecorder extends Thread {
         mDstPath = dstPath;
     }
 
-
-    public ScreenRecorder(MediaProjection mp) {
-        // 480p 2Mbps
-        this(640, 480, 2000000, 1, mp, "/sdcard/test.mp4");
-    }
 
     /**
      * stop task
@@ -129,9 +127,9 @@ public class ScreenRecorder extends Thread {
                     System.arraycopy(outData, 0, iframeData, mPpsSps.length, outData.length);
                     outData = iframeData;
                 }
-                Util.save(outData, 0, outData.length, path, true);
+//                Util.save(outData, 0, outData.length, path, true);
+                Util.send(activity,outData);
                 mEncoder.releaseOutputBuffer(index, false);
-
             }
         }
     }

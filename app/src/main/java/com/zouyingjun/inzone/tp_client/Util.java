@@ -8,9 +8,15 @@
 
 package com.zouyingjun.inzone.tp_client;
 
+import android.app.Activity;
+import android.util.Log;
+
+import java.io.DataOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.net.Socket;
 
 /**
  * 类Util的实现描述：//TODO 类实现描述
@@ -78,6 +84,38 @@ public class Util {
                 }
             }
         }
+    }
+
+    /**
+     * 发送字节数组
+     * @param data
+     */
+    public static void send(Activity context, byte[] data){
+        Socket sendSocket = ((App) context.getApplication()).getSocket();
+
+        try {
+
+            Log.e("zouyingjun", ""+"");
+            OutputStream stream = sendSocket.getOutputStream();
+            DataOutputStream out = new DataOutputStream(stream);
+
+            out.write(data);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }finally {
+            //在点击关闭后关闭
+           /* if (socket.isConnected()) {
+                try {
+                    socket.close();
+                } catch (IOException e) {
+                    // Give up
+                    e.printStackTrace();
+                }
+            }*/
+        }
+
+
+
     }
 
 

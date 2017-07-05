@@ -16,6 +16,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
+import java.io.IOException;
+import java.net.Socket;
+
 /**
  * WiFiDirectActivity
  */
@@ -192,5 +195,20 @@ public class MainActivity extends Activity implements DeviceActionListener{
     @Override
     public void onBackPressed() {
         moveTaskToBack(true);
+    }
+
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Socket socket = ((App) getApplication()).socket;
+        if(socket.isConnected()){
+            try {
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
     }
 }
