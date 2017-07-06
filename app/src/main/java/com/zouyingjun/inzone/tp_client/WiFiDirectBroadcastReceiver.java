@@ -72,6 +72,14 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                     manager.requestConnectionInfo(channel, fragment);//在fragment中处理连接成功的逻辑
 
                 }else{
+                    if(((App)activity.getApplication()).isClientState == 1){//关闭播放界面
+
+                        Context baseContext = activity.getBaseContext();
+                        Intent intent1 = new Intent(baseContext, MainActivity.class);
+                        intent1.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        baseContext.startActivity(intent1);
+                    }
+
                     // 刷新界面
                     activity.resetData();
                 }

@@ -2,17 +2,12 @@ package com.zouyingjun.inzone.tp_client;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
@@ -45,6 +40,10 @@ public class MainActivity extends Activity implements DeviceActionListener{
         manager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         channel = manager.initialize(this, getMainLooper(), null);
 
+
+        //注册广播
+        receiver = new WiFiDirectBroadcastReceiver(manager,channel,this);
+        registerReceiver(receiver,intentFilter);
     }
 
     public void setWifiP2pEnabled(boolean wifiP2pEnabled) {
@@ -64,33 +63,6 @@ public class MainActivity extends Activity implements DeviceActionListener{
                 findFragmentById(R.id.frag_detail);
         if(fragmentList != null){
             fragmentDetail.resetViews();
-        }
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater menuInflater = getMenuInflater();
-        menuInflater.inflate(R.menu.action_items,menu);
-        return true;
-    }
-
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()){
-            case R.id.atn_direct_enable://设置wifi
-                if(manager !=null && channel !=null){
-                    //跳转设置界面
-                    startActivity(new Intent(Settings.ACTION_WIRELESS_SETTINGS));
-                }else{
-                    //不可用
-                    Log.e("zouyingjun", "manager or channel is null！"+"");
-                }
-                return true;
-            case R.id.atn_direct_discover://开始搜索
-                searchPears();
-            default:
-                return super.onOptionsItemSelected(item);
         }
     }
 
@@ -124,20 +96,8 @@ public class MainActivity extends Activity implements DeviceActionListener{
         return true;
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        //注册广播
-        receiver = new WiFiDirectBroadcastReceiver(manager,channel,this);
-        registerReceiver(receiver,intentFilter);
-    }
 
-    @Override
-    protected void onPause() {
-       super.onPause();
-        //取消广播
-        unregisterReceiver(receiver);
-    }
+
 
     //--------------DeviceActionListener start----------------
     @Override
@@ -201,6 +161,15 @@ public class MainActivity extends Activity implements DeviceActionListener{
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        //取消广播
+        unregisterReceiver(receiver);
+
+        closeSocket();
+    }
+
+
+    public void closeSocket(){
         Socket socket = ((App) getApplication()).socket;
         if(socket.isConnected()){
             try {
@@ -209,6 +178,8 @@ public class MainActivity extends Activity implements DeviceActionListener{
                 e.printStackTrace();
             }
         }
-
     }
+
+
+
 }

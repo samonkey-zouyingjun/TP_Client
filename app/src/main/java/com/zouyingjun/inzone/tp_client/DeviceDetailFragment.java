@@ -85,6 +85,8 @@ public class DeviceDetailFragment extends Fragment implements
             public void onClick(View view) {
                 //取消连接
                 ((MainActivity)getActivity()).disconnect();
+                //重置socket以便再次连接
+                ((App)getActivity().getApplication()).resetSocket();
             }
         });
         btnRecode = mContentView.findViewById(R.id.btn_start_client);
@@ -96,6 +98,7 @@ public class DeviceDetailFragment extends Fragment implements
                     mRecorder.quit();
                     mRecorder = null;
                     btnRecode.setText("Restart recorder");
+                    ((MainActivity)getActivity()).closeSocket();
                 } else {
                     //开启录制屏幕
                     Intent captureIntent = mMediaProjectionManager.createScreenCaptureIntent();
@@ -217,7 +220,9 @@ public class DeviceDetailFragment extends Fragment implements
         if (info.groupFormed && info.isGroupOwner) {
 //            new FileServerAsyncTask(getActivity(), (TextView) mContentView.findViewById(R.id.status_text))
 //                    .execute();
-            recorderData();
+//            recorderData();
+            startActivity(new Intent(getActivity(),PlayerActivity.class));
+            ((App)getActivity().getApplication()).isClientState = 1;
 
         //the group client 做客户端，获取文件路径后，将文件写入流，开启任务栈推送流
         } else if (info.groupFormed) {
@@ -227,12 +232,17 @@ public class DeviceDetailFragment extends Fragment implements
             mContentView.findViewById(R.id.btn_start_client).setVisibility(View.VISIBLE);
             ((TextView) mContentView.findViewById(R.id.status_text)).setText(getResources()
                     .getString(R.string.client_text));
+
+            ((App)getActivity().getApplication()).isClientState = -1;
         }
 
         // hide the connect button
         mContentView.findViewById(R.id.btn_connect).setVisibility(View.GONE);
     }
 
+    /**
+     * 接收裸流保存
+     */
     private void recorderData() {
         new Thread(){
             @Override

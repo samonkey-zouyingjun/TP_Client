@@ -14,6 +14,7 @@ public class App extends Application {
     public String EXTRAS_GROUP_OWNER_ADDRESS;
     public int EXTRAS_GROUP_OWNER_PORT;
     public Socket socket ;
+    public int isClientState ;//-1:客户端，1服务端
 
     public Socket getSocket (){
         if(socket == null){

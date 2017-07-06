@@ -9,7 +9,6 @@
 package com.zouyingjun.inzone.tp_client;
 
 import android.app.Activity;
-import android.util.Log;
 
 import java.io.DataOutputStream;
 import java.io.FileNotFoundException;
@@ -95,7 +94,6 @@ public class Util {
 
         try {
 
-            Log.e("zouyingjun", ""+"");
             OutputStream stream = sendSocket.getOutputStream();
             DataOutputStream out = new DataOutputStream(stream);
 
