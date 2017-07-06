@@ -27,8 +27,15 @@
                 android:id="@+id/btn_start_client"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/get_recoder_button"
-                android:visibility="gone" />
+                android:visibility="gone"
+                android:text="@string/get_recoder_button"/>
+            <Button
+                android:id="@+id/btn_start_server"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:text="@string/play_button"/>
+
         </LinearLayout>
         <TextView
             android:id="@+id/device_address"

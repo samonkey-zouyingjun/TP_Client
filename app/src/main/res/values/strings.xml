@@ -6,10 +6,12 @@
     <string name="disconnect_peer_button">断开</string>
     <string name="get_file_button">传图</string>
     <string name="get_recoder_button">录屏</string>
+    <string name="play_button">播放</string>
     <string name="empty"></string>
     <string name="yes">yes</string>
     <string name="no">no</string>
-    <string name="client_text">This device will act as a client. Click on Gallery button to pick a local(stored) file</string>
+    <string name="client_text">Client 录制</string>
+    <string name="Server_text">Server 播放</string>
     <string name="empty_message">No devices found. Turn on P2P and perform discovery from the Action Bar</string>
     <string name="p2p_off_warning">Enable P2P from action bar button above or system settings</string>
     <string name="group_owner_text">"Am I the Group Owner? "</string>

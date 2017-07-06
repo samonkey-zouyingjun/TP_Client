@@ -48,7 +48,7 @@ public class DeviceDetailFragment extends Fragment implements
     protected static final int CHOOSE_RECODER_RESULT_CODE = 30;//录制视频请求码
     private MediaProjectionManager mMediaProjectionManager;
     private ScreenRecorder mRecorder;
-    private Button btnRecode;
+    private Button btnRecode,play;
 
 
     @Nullable
@@ -90,6 +90,7 @@ public class DeviceDetailFragment extends Fragment implements
             }
         });
         btnRecode = mContentView.findViewById(R.id.btn_start_client);
+        play = mContentView.findViewById(R.id.btn_start_server);
         btnRecode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -104,6 +105,12 @@ public class DeviceDetailFragment extends Fragment implements
                     Intent captureIntent = mMediaProjectionManager.createScreenCaptureIntent();
                     startActivityForResult(captureIntent, CHOOSE_RECODER_RESULT_CODE);
                 }
+            }
+        });
+        play.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startActivity(new Intent(getActivity(),PlayerActivity.class));
             }
         });
 
@@ -221,20 +228,16 @@ public class DeviceDetailFragment extends Fragment implements
 //            new FileServerAsyncTask(getActivity(), (TextView) mContentView.findViewById(R.id.status_text))
 //                    .execute();
 //            recorderData();
-            startActivity(new Intent(getActivity(),PlayerActivity.class));
-            ((App)getActivity().getApplication()).isClientState = 1;
-
         //the group client 做客户端，获取文件路径后，将文件写入流，开启任务栈推送流
         } else if (info.groupFormed) {
             // The other device acts as the client. In this case, we enable the
             // get file button.
-            //相册按钮可见,逻辑在点击回调中
-            mContentView.findViewById(R.id.btn_start_client).setVisibility(View.VISIBLE);
             ((TextView) mContentView.findViewById(R.id.status_text)).setText(getResources()
                     .getString(R.string.client_text));
-
-            ((App)getActivity().getApplication()).isClientState = -1;
         }
+
+        play.setVisibility(View.VISIBLE);
+        btnRecode.setVisibility(View.VISIBLE);
 
         // hide the connect button
         mContentView.findViewById(R.id.btn_connect).setVisibility(View.GONE);
