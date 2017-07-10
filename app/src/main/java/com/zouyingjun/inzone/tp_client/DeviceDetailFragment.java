@@ -228,6 +228,9 @@ public class DeviceDetailFragment extends Fragment implements
 //            new FileServerAsyncTask(getActivity(), (TextView) mContentView.findViewById(R.id.status_text))
 //                    .execute();
 //            recorderData();
+
+            ((TextView) mContentView.findViewById(R.id.status_text)).setText(getResources()
+                    .getString(R.string.Server_text));
         //the group client 做客户端，获取文件路径后，将文件写入流，开启任务栈推送流
         } else if (info.groupFormed) {
             // The other device acts as the client. In this case, we enable the
