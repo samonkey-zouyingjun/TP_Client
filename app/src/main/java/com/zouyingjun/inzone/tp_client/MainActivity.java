@@ -11,9 +11,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
-import java.io.IOException;
-import java.net.Socket;
-
 /**
  * WiFiDirectActivity
  */
@@ -165,21 +162,6 @@ public class MainActivity extends Activity implements DeviceActionListener{
         //取消广播
         unregisterReceiver(receiver);
 
-        closeSocket();
+        ((App) getApplication()).resetSocket();
     }
-
-
-    public void closeSocket(){
-        Socket socket = ((App) getApplication()).socket;
-        if(socket.isConnected()){
-            try {
-                socket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-
-
 }

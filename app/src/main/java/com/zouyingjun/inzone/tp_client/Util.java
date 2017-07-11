@@ -87,9 +87,11 @@ public class Util {
 
     /**
      * 发送字节数组
+     *
      * @param data
      */
-    public static void send(Activity context, byte[] data){
+    public static void send(Activity context, byte[] data) {
+
         Socket sendSocket = ((App) context.getApplication()).getSocket();
 
         try {
@@ -100,21 +102,7 @@ public class Util {
             out.write(data);
         } catch (IOException e) {
             e.printStackTrace();
-        }finally {
-            //在点击关闭后关闭
-           /* if (socket.isConnected()) {
-                try {
-                    socket.close();
-                } catch (IOException e) {
-                    // Give up
-                    e.printStackTrace();
-                }
-            }*/
         }
-
-
-
     }
-
 
 }

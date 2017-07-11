@@ -63,6 +63,7 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                 if(manager == null){
                     return;
                 }
+
                 NetworkInfo networkInfo = intent.
                         getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);//获取网络信息
 
@@ -91,8 +92,5 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
             case WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION:
                 break;
         }
-
-
-
     }
 }

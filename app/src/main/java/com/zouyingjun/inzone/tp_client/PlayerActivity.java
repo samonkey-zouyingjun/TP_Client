@@ -12,15 +12,14 @@ import com.vonchenchen.android_video_demos.codec.FrameRender;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.ServerSocket;
 import java.net.Socket;
 
 public class PlayerActivity extends Activity {
 
     private SurfaceView sv;
-    private ServerSocket serverSocket;
     private SurfaceHolder holder;
     private FrameRender frameRender;
+    private Socket socket;
 
 
     @Override
@@ -78,13 +77,10 @@ public class PlayerActivity extends Activity {
     private Runnable read = new Runnable() {
         @Override
         public void run() {
-            try {
-                serverSocket = new ServerSocket(8988);
 
-                Log.e("zouyingjun", "server opening"+"");
-                Socket client = serverSocket.accept();
-                Log.e("zouyingjun", "server ok"+"");
-                InputStream fs = client.getInputStream();//获取流
+            try {
+                socket = ((App) PlayerActivity.this.getApplication()).getSocket();
+                InputStream fs = socket.getInputStream();//获取流
                 Log.e("zouyingjun", "server getstream"+"");
 
 
@@ -97,17 +93,4 @@ public class PlayerActivity extends Activity {
 
         }
     };
-
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if(serverSocket!=null){
-            try {
-                serverSocket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 }

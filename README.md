@@ -13,6 +13,6 @@
   ffmpeg解码的NDK编程：http://blog.csdn.net/lidec/article/details/72934405
 
 
-
-##注意
- wifi direct 只能是groupClient推送到groupOwner,开发者可以建议设备做GroupOwner;可以在连接时设置wifiP2pConfig.groupOwnerIntent=15 建议设置成GroupOwner。
+##坑
+- WifiDirect是区分客户端和服务端的，虽然可以通过设置config建议但是遇到类似机顶盒这样配件较为低的移动端，会默认做客户端，
+其次ServerSocket一定要先启动，如Server端做录制端，Client做投屏端，就必须先打开录制端的录制按钮，再打开Client的播放按钮。

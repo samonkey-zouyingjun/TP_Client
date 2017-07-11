@@ -65,13 +65,7 @@ public class DeviceDetailFragment extends Fragment implements
             @Override
             public void onClick(View view) {
                 WifiP2pConfig config = new WifiP2pConfig();
-                boolean isServer = ((App) getActivity().getApplication()).isServer();
-
-                if(isServer){
-                    config.groupOwnerIntent = 15;
-                    //wifiP2pConfig.groupOwnerIntent 建议设置设置group owner
-                }
-
+                //wifiP2pConfig.groupOwnerIntent 建议设置设置group owner
                 config.deviceAddress = device.deviceAddress;//设置连接地址
                 config.wps.setup = WpsInfo.PBC;
                 //显示进度条
@@ -105,7 +99,7 @@ public class DeviceDetailFragment extends Fragment implements
                     mRecorder.quit();
                     mRecorder = null;
                     btnRecode.setText("Restart recorder");
-                    ((MainActivity)getActivity()).closeSocket();
+                    ((App) getActivity().getApplication()).resetSocket();
                 } else {
                     //开启录制屏幕
                     Intent captureIntent = mMediaProjectionManager.createScreenCaptureIntent();
@@ -116,6 +110,8 @@ public class DeviceDetailFragment extends Fragment implements
         play.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                App application = (App) getActivity().getApplication();
+                application.EXTRAS_GROUP_OWNER_ADDRESS = info.groupOwnerAddress.getHostAddress();
                 startActivity(new Intent(getActivity(),PlayerActivity.class));
             }
         });
@@ -128,7 +124,6 @@ public class DeviceDetailFragment extends Fragment implements
 
         App application = (App) getActivity().getApplication();
         application.EXTRAS_GROUP_OWNER_ADDRESS = info.groupOwnerAddress.getHostAddress();
-        application.EXTRAS_GROUP_OWNER_PORT = 8988;
 
         if(CHOOSE_FILE_RESULT_CODE == requestCode) {//加载相册
 
@@ -235,17 +230,24 @@ public class DeviceDetailFragment extends Fragment implements
 //                    .execute();
 //            recorderData();
 
-            play.setVisibility(View.VISIBLE);
+            ((App)getActivity().getApplication()).setService(true);
+
+
             ((TextView) mContentView.findViewById(R.id.status_text)).setText(getResources()
                     .getString(R.string.Server_text));
         //the group client 做客户端，获取文件路径后，将文件写入流，开启任务栈推送流
         } else if (info.groupFormed) {
             // The other device acts as the client. In this case, we enable the
             // get file button.
-            btnRecode.setVisibility(View.VISIBLE);
+
+            ((App)getActivity().getApplication()).setService(false);
             ((TextView) mContentView.findViewById(R.id.status_text)).setText(getResources()
                     .getString(R.string.client_text));
         }
+
+        play.setVisibility(View.VISIBLE);
+        btnRecode.setVisibility(View.VISIBLE);
+
         // hide the connect button
         mContentView.findViewById(R.id.btn_connect).setVisibility(View.GONE);
     }
