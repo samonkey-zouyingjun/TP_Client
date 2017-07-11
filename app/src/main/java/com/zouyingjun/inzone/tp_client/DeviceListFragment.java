@@ -16,6 +16,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -46,6 +48,13 @@ public class DeviceListFragment extends ListFragment implements WifiP2pManager.P
             @Override
             public void onClick(View view) {
                 ((MainActivity)getActivity()).searchPears();
+            }
+        });
+        CheckBox cb = mContentView.findViewById(R.id.cb);
+        cb.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                ((App)getActivity().getApplication()).setServer(b);
             }
         });
         return mContentView;

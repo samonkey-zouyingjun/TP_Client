@@ -14,6 +14,15 @@ public class App extends Application {
     public String EXTRAS_GROUP_OWNER_ADDRESS;
     public int EXTRAS_GROUP_OWNER_PORT;
     public Socket socket ;
+    public boolean isServer;//true 指定为grouponwer false 自动分配
+
+    public boolean isServer() {
+        return isServer;
+    }
+
+    public void setServer(boolean server) {
+        isServer = server;
+    }
 
     public Socket getSocket (){
         if(socket == null){

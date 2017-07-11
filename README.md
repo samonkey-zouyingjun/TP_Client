@@ -11,3 +11,8 @@
 - 7-10 用原生的硬件解码和硬件有关，后改为ffmpeg解码方式可以实现较好的解码效果
 
   ffmpeg解码的NDK编程：http://blog.csdn.net/lidec/article/details/72934405
+
+
+
+##注意
+ wifi direct 只能是groupClient推送到groupOwner,开发者可以建议设备做GroupOwner;可以在连接时设置wifiP2pConfig.groupOwnerIntent=15 建议设置成GroupOwner。
